@@ -1,54 +1,44 @@
 package etcdcli
 
 // import (
-// 	"fmt"
+// 	"context"
 // 	"log"
 // 	"time"
 
-// 	"github.com/coreos/etcd/clientv3"
-// 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
-// 	"golang.org/x/net/context"
+// 	"github.com/etcd-io/etcd/client"
 // )
 
 // func main() {
-// 	cli, err := clientv3.New(clientv3.Config{
-// 		Endpoints:   []string{"localhost:2379"},
-// 		DialTimeout: 5 * time.Second,
-// 	})
-// 	if err != nil {
-// 		// handle error!
-// 		fmt.Println(err.Error())
+// 	data := []string{"http://192.168.40.204:2379"}
+// 	cfg := client.Config{
+// 		Endpoints: data,
+// 		Transport: client.DefaultTransport,
+// 		// set timeout per request to fail fast when the target endpoint is unavailable
+// 		HeaderTimeoutPerRequest: time.Second,
 // 	}
-// 	defer cli.Close()
-
-// 	// resp, err := cli.MemberList(context.Background())
-// 	// if err != nil {
-// 	// 	log.Fatal(err)
-// 	// }
-// 	// fmt.Println("members:", len(resp.Members), resp.Members[0].GetName())
-
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	// _, err = cli.Put(ctx, time.Now().String(), "2")
-// 	_, err = cli.Put(ctx, "/1/3", "2")
-// 	if err != nil {
-// 		switch err {
-// 		case context.Canceled:
-// 			fmt.Printf("ctx is canceled by another routine: %v\n", err)
-// 		case context.DeadlineExceeded:
-// 			fmt.Printf("ctx is attached with a deadline is exceeded: %v\n", err)
-// 		case rpctypes.ErrEmptyKey:
-// 			fmt.Printf("client-side error: %v\n", err)
-// 		default:
-// 			fmt.Printf("bad cluster endpoints, which are not etcd servers: %v\n", err)
-// 		}
-// 	}
-
-// 	resp, err := cli.Get(ctx, "", clientv3.WithPrefix())
-// 	cancel()
+// 	c, err := client.New(cfg)
 // 	if err != nil {
 // 		log.Fatal(err)
 // 	}
-// 	for _, x := range resp.Kvs {
-// 		fmt.Println(string(x.Key), string(x.Value))
+// 	kapi := client.NewKeysAPI(c)
+// 	// set "/foo" key with "bar" value
+// 	log.Print("Setting '/foo' key with 'bar' value")
+// 	resp, err := kapi.Set(context.Background(), "/foo", "bar", nil)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	} else {
+// 		// print common key info
+// 		log.Printf("Set is done. Metadata is %q\n", resp)
+// 	}
+// 	// get "/foo" key's value
+// 	log.Print("Getting '/foo' key value")
+// 	resp, err = kapi.Get(context.Background(), "/foo", nil)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	} else {
+// 		// print common key info
+// 		log.Printf("Get is done. Metadata is %q\n", resp)
+// 		// print value
+// 		log.Printf("%q key has %q value\n", resp.Node.Key, resp.Node.Value)
 // 	}
 // }

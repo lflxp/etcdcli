@@ -4,62 +4,81 @@ import (
 	"context"
 	"time"
 
-	"github.com/coreos/etcd/client"
+	"github.com/etcd-io/etcd/client"
 )
 
-func NewConnV2(data []string) (*etcdCli, error) {
-	var err error
-	conn := &etcdCli{}
-	*conn.CliV2, err = client.New(client.Config{
-		Endpoints:               data,
+type V2 struct {
+	Endpoints []string
+	Username  string
+	Password  string
+	Cli       client.Client
+	KeysApi   client.KeysAPI
+}
+
+// data  []string{"http://localhost:2379"}
+func NewConnV2(data []string, username, password string) (*V2, error) {
+	s := &V2{
+		Endpoints: data,
+		Username:  username,
+		Password:  password,
+	}
+	err := s.Init()
+	return s, err
+}
+
+func (this *V2) Init() error {
+	cfg := client.Config{
+		Endpoints:               this.Endpoints,
 		Transport:               client.DefaultTransport,
 		HeaderTimeoutPerRequest: 5 * time.Second,
-	})
-	return conn, err
+	}
+	if this.Username != "" && this.Password != "" {
+		cfg.Username = this.Username
+		cfg.Password = this.Password
+	}
+	cli, err := client.New(cfg)
+	if err != nil {
+		return err
+	}
+	this.Cli = cli
+	return nil
 }
 
-func NewConnAuthV2(data []string, username, password string) (*etcdCli, error) {
-	var err error
-	conn := &etcdCli{}
-	*conn.CliV2, err = client.New(client.Config{
-		Endpoints:               data,
-		Transport:               client.DefaultTransport,
-		HeaderTimeoutPerRequest: 5 * time.Second,
-		Username:                username,
-		Password:                password,
-	})
-	return conn, err
+func (this *V2) getKeysApi() client.KeysAPI {
+	if this.Cli == nil {
+		this.Init()
+	}
+	if this.KeysApi == nil {
+		this.KeysApi = client.NewKeysAPI(this.Cli)
+	}
+	return this.KeysApi
 }
 
-func (this *etcdCli) GetKeysApi() client.KeysAPI {
-	return client.NewKeysAPI(*this.CliV2)
-}
-
-func (this *etcdCli) PutV2(key, value string) (*client.Response, error) {
-	resp, err := this.GetKeysApi().Set(context.Background(), key, value, &client.SetOptions{})
+func (this *V2) PutV2(key, value string) (*client.Response, error) {
+	resp, err := this.getKeysApi().Set(context.Background(), key, value, &client.SetOptions{})
 	return resp, err
 }
 
-func (this *etcdCli) PutTtlV2(key, value string, ttl int64) (*client.Response, error) {
-	resp, err := this.GetKeysApi().Set(context.Background(), key, value, &client.SetOptions{TTL: time.Duration(ttl) * time.Second})
+func (this *V2) PutTtlV2(key, value string, ttl int64) (*client.Response, error) {
+	resp, err := this.getKeysApi().Set(context.Background(), key, value, &client.SetOptions{TTL: time.Duration(ttl) * time.Second})
 	return resp, err
 }
-func (this *etcdCli) GetV2(key string) (*client.Response, error) {
-	resp, err := this.GetKeysApi().Get(context.Background(), key, &client.GetOptions{})
-	return resp, err
-}
-
-func (this *etcdCli) GetWithPreifxV2(key string) (*client.Response, error) {
-	resp, err := this.GetKeysApi().Get(context.Background(), key, &client.GetOptions{Recursive: true})
+func (this *V2) GetV2(key string) (*client.Response, error) {
+	resp, err := this.getKeysApi().Get(context.Background(), key, nil)
 	return resp, err
 }
 
-func (this *etcdCli) DeleteV2(key string) (*client.Response, error) {
-	resp, err := this.GetKeysApi().Delete(context.Background(), key, &client.DeleteOptions{})
+func (this *V2) GetWithPreifxV2(key string) (*client.Response, error) {
+	resp, err := this.getKeysApi().Get(context.Background(), key, &client.GetOptions{Recursive: true})
 	return resp, err
 }
 
-func (this *etcdCli) DeleteWithPrefixV2(key string) (*client.Response, error) {
-	resp, err := this.GetKeysApi().Delete(context.Background(), key, &client.DeleteOptions{Recursive: true})
+func (this *V2) DeleteV2(key string) (*client.Response, error) {
+	resp, err := this.getKeysApi().Delete(context.Background(), key, &client.DeleteOptions{})
+	return resp, err
+}
+
+func (this *V2) DeleteWithPrefixV2(key string) (*client.Response, error) {
+	resp, err := this.getKeysApi().Delete(context.Background(), key, &client.DeleteOptions{Recursive: true})
 	return resp, err
 }
