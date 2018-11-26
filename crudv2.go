@@ -54,6 +54,11 @@ func (this *V2) getKeysApi() client.KeysAPI {
 	return this.KeysApi
 }
 
+func (this *V2) SetDir(key string) (*client.Response, error) {
+	resp, err := this.getKeysApi().Set(context.Background(), key, "", &client.SetOptions{Dir: true})
+	return resp, err
+}
+
 func (this *V2) PutV2(key, value string) (*client.Response, error) {
 	resp, err := this.getKeysApi().Set(context.Background(), key, value, &client.SetOptions{})
 	return resp, err
